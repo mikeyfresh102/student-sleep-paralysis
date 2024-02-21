@@ -1,0 +1,287 @@
+
+```{r}
+library(psych)
+library(dplyr)
+library("stringr")
+```
+
+```{r}
+# GENDER CODED
+sp_student_data <- sp_student_data %>%
+  mutate(gender_coded = case_when(
+    Q2.4 == "Female" ~ 1,
+    Q2.4 == "Non-binary / third gender" ~ 0,
+    Q2.4 == "Male" ~ 0, 
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(gender_coded, .after = Q2.4) 
+sp_student_data$is_female <- ifelse(sp_student_data$Q2.4 == "Female", 1, 0)
+sp_student_data$is_non_binary <- ifelse(sp_student_data$Q2.4 == "Non-binary / third gender", 1, 0)
+sp_student_data <- sp_student_data %>%
+  relocate(is_non_binary, .after = is_female)
+sp_student_data$is_male <- ifelse(sp_student_data$Q2.4 == "Male", 1, 0)
+sp_student_data <- sp_student_data %>%
+  relocate(is_male, .after = is_non_binary)
+```
+
+```{r}
+# SP FREQUENCY CODED
+sp_student_data <- sp_student_data %>%
+  mutate(sp_freq_coded = case_when(
+    Q3.1 == "No" ~ 0,
+    Q3.3 == "Once" ~ 1,
+    Q3.3 == "Several" ~ 2, 
+    Q3.3 == "Several times a year" ~ 3, 
+    Q3.3 == "Monthly" ~ 4, 
+    Q3.3 == "Weekly" ~ 5, 
+    Q3.3 == "Several times a week" ~ 6, 
+    Q3.3 == "Daily" ~ 7,
+    TRUE ~ NA_real_
+  )) %>%
+relocate(sp_freq_coded, .after = Q3.3) %>%
+  mutate(sp_during_day_coded = as.numeric(str_detect(Q3.4, "day"))) %>%
+  relocate(sp_during_day_coded, .after = Q3.4) %>%
+  mutate(sp_during_night_coded = as.numeric(str_detect(Q3.4, "night"))) %>%
+  relocate(sp_during_night_coded, .after = Q3.4) %>%
+  mutate(sp_during_both_coded = as.numeric(str_detect(Q3.4, "Both"))) %>%
+  relocate(sp_during_both_coded, .after = Q3.4)
+```
+
+```{r}
+# RACE CODED
+sp_student_data <- sp_student_data %>%
+  mutate(Asian_coded = as.numeric(str_detect(Q2.2, "Asian"))) %>%
+  relocate(Asian_coded, .after = Q2.2) %>%
+  mutate(Black_coded = as.numeric(str_detect(Q2.2, "Black"))) %>%
+  relocate(Black_coded, .after = Q2.2) %>%
+  mutate(White_coded = as.numeric(str_detect(Q2.2, "White"))) %>%
+  relocate(White_coded, .after = Q2.2) %>%
+  mutate(Other_coded = as.numeric(str_detect(Q2.2, "Other"))) %>%
+  relocate(Other_coded, .after = Q2.2) %>%
+  mutate(MultipleRace_coded = as.numeric(str_count(Q2.2, ",") >= 1)) %>%
+  relocate(MultipleRace_coded, .after = Q2.2)%>%
+  mutate(Latino_coded = case_when(
+    Q2.3 == "Yes" ~ 1,
+    Q2.3 == "No" ~ 0,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(Latino_coded, .after = Q2.3) %>%
+  mutate(Prefer_not_to_say_coded = as.numeric(str_detect(Q2.2, "Prefer not to say"))) %>%
+  relocate(Prefer_not_to_say_coded, .after = Q2.2)
+```
+
+```{r}
+# AGE CODED
+sp_student_data <- sp_student_data %>% 
+  mutate(age_coded = case_when(
+    Q2.5 == "18-24 years old" ~ 0, 
+    Q2.5 == "25-34 years old" ~ 1, 
+    Q2.5 == "35-44 years old" ~ 2, 
+    Q2.5 == "45-54 years old" ~ 3, 
+    Q2.5 == "55-64 years old" ~ 4,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(age_coded, .after = Q2.5)
+```
+
+```{r}
+# EDUCATION CODED
+sp_student_data <- sp_student_data %>%
+  mutate(education_coded = case_when(
+    Q2.6 == "Some high school or less" ~ 0, 
+    Q2.6 == "High school diploma or GED" ~ 1,
+    Q2.6 == "Some college, but no degree" ~ 2,
+    Q2.6 == "Associates or technical degree" ~ 3,
+    Q2.6 == "Bachelor’s degree" ~ 4,
+    Q2.6 == "Graduate or professional degree (MA, MS, MBA, PhD, JD, MD, DDS etc.)" ~ 5,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(education_coded, .after = Q2.6) %>%
+  mutate(USA_student_coded = case_when(
+    Q2.8 == "No" ~ 0, 
+    Q2.8 == "Yes" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(USA_student_coded, .after = Q2.8)
+```
+
+```{r}
+# NAPPING CODED
+sp_student_data <- sp_student_data %>%
+  mutate(napping_coded = case_when(
+    Q4.1 == "Never" ~ 0,
+    Q4.1 == "Less than once a month" ~ 1,
+    Q4.1 == "1-3 times per month" ~ 2,
+    Q4.1 == "1-3 times per week" ~ 3,
+    Q4.1 == "4-7 times per week" ~ 4,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(napping_coded, .after = Q4.1) %>%
+  mutate(napping_length_coded = case_when(
+    Q4.1 == "Never" ~ 0,
+    Q4.2 == "Less than 15 minutes" ~ 1,
+    Q4.2 == "15-30 minutes" ~ 2,
+    Q4.2 == "30 minutes to 1 hour" ~ 3,
+    Q4.2 == "1 hour to 2 hours" ~ 4,
+    Q4.2 == "2 hours or more" ~5, 
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(napping_length_coded, .after = Q4.2) %>%
+  mutate(napping_morning_coded = as.numeric(str_detect(Q4.3, "Morning"))) %>%
+  relocate(napping_morning_coded, .after = Q4.3) %>%
+  mutate(napping_afternoon_coded = as.numeric(str_detect(Q4.3, "Afternoon"))) %>%
+  relocate(napping_afternoon_coded, .after = Q4.3) %>%
+  mutate(napping_night_coded = as.numeric(str_detect(Q4.3, "Night"))) %>%
+  relocate(napping_night_coded, .after = Q4.3) %>%
+  mutate(sp_more_from_napping = case_when(
+    Q4.4 == "No"~ 0,
+    Q4.4 == "" ~ 0,
+    Q4.4 == "Yes" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(sp_more_from_napping, .after = Q4.4)
+```
+
+```{r}
+# NUMBER OF OCCUPANTS
+sp_student_data <- sp_student_data %>%
+  mutate(number_of_occupants = case_when(
+    Q5.1 == "None" ~ 0,
+    Q5.1 == "1" ~ 1,
+    Q5.1 == "3-Feb" ~ 2,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(number_of_occupants, .after = Q5.1)
+```
+
+```{r}
+# NOISY AREA
+sp_student_data <- sp_student_data %>%
+  mutate(noisy_area_coded = case_when(
+    Q5.2 == "No" ~ 0,
+    Q5.2 == "Yes" ~ 1,
+    Q5.2 == "Unsure" ~ 2,
+    TRUE ~ NA_real_ 
+  ))  %>%
+  relocate(noisy_area_coded, .after = Q5.2)
+```
+
+```{r}
+# NICOTINE USE
+sp_student_data <- sp_student_data %>%
+  mutate(nicotine_use_coded = as.numeric(str_detect(Q6.1, "Yes"))) %>%
+  relocate(nicotine_use_coded, .after = Q6.1) %>%
+  mutate(nicotine_per_week = as.numeric(ifelse(Q6.2 == "", "0", Q6.2))) %>%
+  relocate(nicotine_per_week, .after = Q6.2) %>%
+  mutate(nicotine_per_day = as.numeric(ifelse(Q6.3 == "", "0", Q6.3))) %>%
+  relocate(nicotine_per_day, .after = Q6.3) %>%
+  mutate(nicotine_day_use = as.numeric(str_detect(Q6.5, "day"))) %>%
+  relocate(nicotine_day_use, .after = Q6.5) %>%
+  mutate(nicotine_evening_use = as.numeric(str_detect(Q6.5, "Evening"))) %>%
+  relocate(nicotine_evening_use, .after = Q6.5) %>%
+  mutate(nicotine_night_use = as.numeric(str_detect(Q6.5, "Night"))) %>%
+  relocate(nicotine_night_use, .after = Q6.5) %>%
+  mutate(sp_more_from_nicotine = case_when(
+    Q6.6 == "No"~ 0,
+    Q6.6 == "" ~ 0,
+    Q6.6 == "Yes" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(sp_more_from_nicotine, .after = nicotine_day_use)
+```
+
+```{r}
+# ALCOHOL USE
+sp_student_data <- sp_student_data %>%
+  mutate(alc_use_coded = as.numeric(str_detect(Q7.1, "Yes"))) %>%
+  relocate(alc_use_coded, .after = Q7.1) %>%
+  mutate(alc_per_week = as.numeric(ifelse(Q7.3 == "", "0", Q7.3))) %>%
+  relocate(alc_per_week, .after = Q7.3) %>%
+  mutate(alc_at_once = as.numeric(ifelse(Q7.4 == "", "0", Q7.4))) %>%
+  relocate(alc_at_once, .after = Q7.4) %>%
+  mutate(alc_nights_per_week = as.numeric(ifelse(Q7.5 == "", "0", Q7.5))) %>%
+  relocate(alc_nights_per_week, .after = Q7.5) %>%
+  mutate(sp_more_from_alc = case_when(
+    Q7.6 == "No"~ 0,
+    Q7.6 == "" ~ 0,
+    Q7.6 == "Yes" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(sp_more_from_alc, .after = Q7.6)
+```
+
+```{r}
+# CAFFETINE USE
+sp_student_data <- sp_student_data %>%
+  mutate(caffetine_use_coded = as.numeric(str_detect(Q8.1, "Yes"))) %>%
+  relocate(caffetine_use_coded, .after = Q8.1) %>%
+  mutate(caffetine_per_week = as.numeric(ifelse(Q8.2 == "", "0", Q8.2))) %>%
+  relocate(caffetine_per_week, .after = Q8.2) %>%
+  mutate(caffetine_per_day = as.numeric(ifelse(Q8.3 == "", "0", Q8.3))) %>%
+  relocate(caffetine_per_day, .after = Q8.3) %>%
+  mutate(caffetine_morning_use = as.numeric(str_detect(Q8.4, "Morning"))) %>%
+  relocate(caffetine_morning_use, .after = Q8.4) %>%
+  mutate(caffetine_evening_use = as.numeric(str_detect(Q8.4, "Evening"))) %>%
+  relocate(caffetine_evening_use, .after = Q8.4) %>%
+  mutate(caffetine_afternoon_use = as.numeric(str_detect(Q8.4, "Afternoon"))) %>%
+  relocate(caffetine_afternoon_use, .after = Q8.4) %>%
+  mutate(sp_more_from_caffetine = case_when(
+    Q8.5 == "No"~ 0,
+    Q8.5 == "" ~ 0,
+    Q8.5 == "Yes" ~ 1,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(sp_more_from_caffetine, .after = Q8.5)
+```
+
+```{r}
+# FAMILY MATTERS
+sp_student_data <- sp_student_data %>%
+  mutate(family_members_coded = as.numeric(str_detect(Q9.1, "Yes"))) %>%
+  relocate(family_members_coded, .after = Q9.1) %>%
+  mutate(family_sibling_coded = as.numeric(str_detect(Q9.2, "Sibling"))) %>%
+  relocate(family_sibling_coded, .after = Q9.2) %>%
+  mutate(family_parent_coded = as.numeric(str_detect(Q9.2, "Parent"))) %>%
+  relocate(family_parent_coded, .after = Q9.2) %>%
+  mutate(family_other_coded = as.numeric(str_detect(Q9.2, "Other"))) %>%
+  relocate(family_other_coded, .after = Q9.2) %>%
+  mutate(family_number_coded = as.numeric(ifelse(Q9.3 == "", 0, Q9.3))) %>%
+  relocate(family_number_coded, .after = Q9.3)
+```
+
+```{r}
+# PHONE AND SOCIAL MEDIA USE
+sp_student_data <- sp_student_data %>%
+  mutate(phone_use_coded = case_when(
+    Q10.1 == "Less than 1 hour" ~ 0, 
+    Q10.1 == "1 - 2 hours" ~ 1,
+    Q10.1 == "2 - 4 hours" ~ 2,
+    Q10.1 == "4 - 6 hours" ~ 3,
+    Q10.1 == "6 - 8 hours" ~ 4,
+    Q10.1 == "8 - 10 hours" ~ 5,
+    Q10.1 == "10+ hours" ~ 6,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(phone_use_coded, .after = Q10.1) %>%
+  mutate(social_media_use_coded = case_when(
+    Q10.2 == "Less than 1 hour" ~ 0, 
+    Q10.2 == "1 - 2 hours" ~ 1,
+    Q10.2 == "2 - 4 hours" ~ 2,
+    Q10.2 == "4 - 6 hours" ~ 3,
+    Q10.2 == "6 - 8 hours" ~ 4,
+    Q10.2 == "8 - 10 hours" ~ 5,
+    Q10.2 == "10+ hours" ~ 6,
+    TRUE ~ NA_real_
+  )) %>%
+  relocate(social_media_use_coded, .after = Q10.2) %>%
+  mutate(tech_before_bed_coded = case_when(
+    Q10.3 == "Never" ~ 0, 
+    Q10.3 == "Somewhat Unlikely" ~ 1, 
+    Q10.3 == "Unsure" ~ 2,
+    Q10.3 == "Somewhat Likely" ~ 3,
+    Q10.3 == "Always" ~ 4,
+    TRUE ~ NA_real_ 
+  )) %>%
+  relocate(tech_before_bed_coded, .after = Q10.3)
+```
+
