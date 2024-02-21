@@ -1,0 +1,379 @@
+
+```{r}
+library(psych)
+library(dplyr)
+library(car)
+library(stargazer)
+```
+
+```{r}
+sp_student_data <- read.csv("~/Desktop/Sleep Paralysis/SPStudentStudy/sp_student_data_cleaned_final")
+```
+
+```{r}
+sp_student_data <- sp_student_data[-1, ]
+```
+
+# PSQI Descriptive Stats
+```{r}
+# PSQI 
+PSQI_mean <- mean(sp_student_data$PSQI)
+PSQI_median <- median(sp_student_data$PSQI)
+PSQI_sd <- sd(sp_student_data$PSQI)
+PSQI_list <- list(
+  Mean = PSQI_mean,
+  Median = PSQI_median,
+  SD = PSQI_sd
+)
+print(PSQI_list)
+```
+
+# Calcualate time average
+```{r}
+#Calculate time average
+sp_bedtime <- (sp_student_data$Q11.3)
+
+minutes_past_midnight <- sapply(strsplit(sp_bedtime, ":"), function(x) {
+  hours <- as.numeric(x[1])
+  minutes <- as.numeric(x[2])
+  return(hours * 60 + minutes)
+})
+
+average_minutes <- mean(minutes_past_midnight)
+median_minutes <- median(minutes_past_midnight)
+
+average_hours <- floor(average_minutes / 60)
+average_remaining_minutes <- average_minutes %% 60
+average_time <- sprintf("%02d:%02d", as.integer(average_hours), as.integer(average_remaining_minutes))
+
+median_hours <- floor(median_minutes / 60)
+median_remaining_minutes <- median_minutes %% 60
+median_time <- sprintf("%02d:%02d", as.integer(median_hours), as.integer(median_remaining_minutes))
+
+```
+
+# Calcualting wake up time
+```{r} 
+#Calcualting wake up time
+sp_wakeup <- (sp_student_data_cleaned_LowSP$Q11.3)
+
+minutes_past_midnight <- sapply(strsplit(sp_wakeup, ":"), function(x) {
+  hours <- as.numeric(x[1])
+  minutes <- as.numeric(x[2])
+  return(hours * 60 + minutes)
+})
+
+average_minutes <- mean(minutes_past_midnight)
+median_minutes <- median(minutes_past_midnight)
+sd_minutes <- sd(minutes_past_midnight)
+
+average_hours <- floor(average_minutes / 60)
+average_remaining_minutes <- average_minutes %% 60
+average_time <- sprintf("%02d:%02d", as.integer(average_hours), as.integer(average_remaining_minutes))
+
+median_hours <- floor(median_minutes / 60)
+median_remaining_minutes <- median_minutes %% 60
+median_time <- sprintf("%02d:%02d", as.integer(median_hours), as.integer(median_remaining_minutes))
+
+sd_hours <- floor(sd_minutes / 60)
+sd_remaining_minutes <- sd_minutes %% 60
+sd_time <- sprintf("%02d:%02d", as.integer(sd_hours), as.integer(sd_remaining_minutes))
+
+time_list <- list(
+  Mean = average_time,
+  Median = median_time,
+  SD = sd_time
+)
+
+print(time_list)
+```
+
+# Pearson's Correlation
+```{r}
+ # CORRELATION ANALYSIS
+# Pearson's Correlation
+sp_freq_model <- lm(Black_coded ~ number_of_occupants, data = sp_student_data_cleaned)
+summary(sp_freq_model)
+plot(sp_freq_model)
+hist(resid(sp_freq_model))
+```
+
+# Spearman's R
+```{r}
+# CORRELATION ANALYSIS WITH GRAPH 
+# Spearman's R 
+spearman_corr <- cor.test(sp_student_data_cleaned$nicotine_factor_FA, sp_student_data_cleaned$alc_factor_FA, method = "spearman")
+print(spearman_corr)
+```
+
+# Factor Analysis
+```{r}
+# FACTOR ANALYSIS
+sp_factor_df <- sp_student_data_cleaned %>%
+  select(napping_coded, napping_length_coded, alc_use_coded, alc_per_week, alc_at_once, alc_nights_per_week, caffetine_use_coded, caffetine_per_week, caffetine_per_day, family_members_coded, family_number_coded, nicotine_use_coded, nicotine_per_week, nicotine_per_day
+  ) 
+fa_result <- fa(sp_factor_df, nfactors = 5, rotate = "varimax")
+print(fa_result)
+fa.diagram(fa_result)
+# Calculate FA scores 
+sp_factor_scores_FA <- predict(fa_result, sp_factor_df)
+head(sp_factor_scores_FA)
+```
+
+# Creating Factor Scores
+```{r}
+# CREATING TESTING FACTOR FOR FA
+# Alcohol Factor 
+sp_student_data_cleaned$alc_factor_FA <- sp_factor_scores_FA[,1]
+# Caffeine Factor
+sp_student_data_cleaned$caffetine_factor_FA <- sp_factor_scores_FA[,2]
+# Family Factor
+sp_student_data_cleaned$family_factor_FA <- sp_factor_scores_FA[,3]
+# Nicotine Factor
+sp_student_data_cleaned$nicotine_factor_FA <- sp_factor_scores_FA[,4]
+# Napping Factor
+sp_student_data_cleaned$napping_factor_FA <- sp_factor_scores_FA[,5]
+```
+
+# PCA with Varimax Rotation
+```{r}
+# PCA with Varimax Rotation
+pca_result <- principal(sp_factor_df, nfactors = 4, rotate = "varimax")
+print(pca_result)
+fa.diagram(pca_result)
+# Calculate factor scores
+sp_factor_scores <- predict(pca_result, sp_factor_df)
+head(sp_factor_scores)
+```
+
+# Creating PCA Factor Scores
+```{r}
+# CREATING THE FACTORS FOR PCA
+# Caffeine Factor 
+sp_student_data_cleaned$alc_factor <- sp_factor_scores[,1]
+# Alcohol Factor 
+sp_student_data_cleaned$caffetine_factor <- sp_factor_scores[,2]
+# Family Factor
+sp_student_data_cleaned$family_factor <- sp_factor_scores[,3]
+# Napping Factor
+sp_student_data_cleaned$napping_factor <- sp_factor_scores[,4]
+```
+
+# Cronbach's A
+```{r}
+# CRONBACH'S A
+
+#subset each factor and it's variables
+factor_for_alpha_analysis <- sp_student_data_cleaned[c("napping_coded", "napping_length_coded")]
+#calculate the cronbach's a for the factor
+cronbach_alpha_result <- alpha(factor_for_alpha_analysis)
+print(cronbach_alpha_result)
+```
+
+# Hierarchical Linear Regression
+```{r}
+# HIERARCHICAL LINEAR REGRESSION
+# Building the models
+m0 <- lm(sp_freq_coded ~ 1, data = sp_student_data_cleaned_HighSP)
+m1 <- lm(sp_freq_coded ~ age_coded + education_coded + is_female, data = sp_student_data_cleaned_HighSP)
+m2 <- lm(sp_freq_coded ~ age_coded + education_coded + is_female + PSQI, data = sp_student_data_cleaned_HighSP)
+m3 <- lm(sp_freq_coded ~ age_coded + education_coded + is_female + PSQI + caffetine_factor_FA + alc_factor_FA + napping_factor_FA + family_factor_FA, data = sp_student_data_cleaned_HighSP)
+# anova comparison
+anova(m0)
+anova(m0, m1, m2, m3)
+HGM_anova_results <- anova(m1, m2, m3)
+# summary stats
+summary(m1)
+summary(m2)
+summary(m3)
+# checking assumptions
+plot(m1, which = 1)
+plot(m1, which = 2)
+plot(sp_student_data_cleaned_HighSP$sp_freq_coded, residuals(m1))
+vif(m1)
+plot(m2, which = 1)
+plot(m2, which = 2)
+plot(sp_student_data_cleaned_HighSP$sp_freq_coded, residuals(m2))
+vif(m2)
+plot(m3, which = 1)
+plot(m3, which = 2)
+plot(sp_student_data_cleaned_HighSP$sp_freq_coded, residuals(m3))
+vif(m3)
+
+stargazer(HGM_anova_results, type = "text")
+```
+
+# Creation of High and Low SP Groups
+```{r}
+# CREATION OF HIGH AND LOW SP GROUPS
+sp_student_data_cleaned_HighSP <- sp_student_data_cleaned %>%
+  filter(sp_freq_coded >= 3)
+sp_student_data_cleaned_LowSP <- sp_student_data_cleaned %>%
+  filter(sp_freq_coded <= 2)
+sp_student_data_cleaned <- sp_student_data_cleaned %>%
+  mutate(sp_level = case_when(
+    sp_freq_coded >= 3 ~ 1,
+    sp_freq_coded <= 2 ~ 0
+  ))
+```
+
+# Continous Variables Difference between High and Low SP
+```{r}
+# CON VARIABLES FOR DIFFERENCE WITH HIGH SP AND LOW SP
+sp_time_bed <- (sp_student_data_cleaned_HighSP$nicotine_factor)
+sp_time_bed <- as.numeric(sp_time_bed)
+mean_value <- mean(sp_time_bed)
+median_value <- median(sp_time_bed)
+sd_variable <- sd(sp_time_bed)
+con_list_high <- list(
+  Mean_high = mean_value,
+  Median_high = median_value,
+  SD_high = sd_variable
+)
+print(con_list_high)
+sp_time_bed <- (sp_student_data_cleaned_LowSP$nicotine_factor)
+sp_time_bed <- as.numeric(sp_time_bed)
+mean_value <- mean(sp_time_bed)
+median_value <- median(sp_time_bed)
+sd_variable <- sd(sp_time_bed)
+con_list_low <- list(
+  Mean_low = mean_value,
+  Median_low = median_value,
+  SD_low = sd_variable
+)
+print(con_list_low)
+```
+
+# Descriptive Stats for High and Low SP
+```{r}
+# DESCRIBIVE STATS FOR HIGH AND LOW SP FREQUENCY
+sp_student_freq_table_high <- table(sp_student_data_cleaned_HighSP$tech_before_bed_coded) #just input the column
+sp_student_percent_table_high <- round((prop.table(sp_student_freq_table_high)) * 100, digits = 2) 
+sp_descriptive_table_high <- cbind(sp_student_freq_table_high, Percentage = sp_student_percent_table_high)
+print(sp_descriptive_table_high)
+sp_student_freq_table_low <- table(sp_student_data_cleaned_LowSP$tech_before_bed_coded) #just input the column
+sp_student_percent_table_low <- round((prop.table(sp_student_freq_table_low)) * 100, digits = 2) 
+sp_descriptive_table_low <- cbind(sp_student_freq_table_low, Percentage = sp_student_percent_table_low)
+print(sp_descriptive_table_low)
+```
+
+# Mann-Whitney U Test
+```{r}
+# CHI SQUARED TEST, MANNU WHITNEY AND CRAMER'S V
+sp_mannu_test <- wilcox.test(sp_student_data_cleaned_HighSP$education_coded, sp_student_data_cleaned_LowSP$education_coded, exact = FALSE)
+print(sp_mannu_test)
+combined_df_for_chi <- rbind(sp_student_data_cleaned_HighSP, sp_student_data_cleaned_LowSP)
+table_data_for_chi <- table(combined_df_for_chi$sp_level, combined_df_for_chi$education_coded)
+sp_chi_test <- chisq.test(table_data_for_chi)
+n <- sum(table_data_for_chi)
+k <- min(nrow(table_data_for_chi) - 1, ncol(table_data_for_chi) - 1)
+cramer_v <- sqrt(sp_chi_test$statistic / (n * k))
+print(sp_chi_test$statistic)
+print(n)
+print(k)
+print(cramer_v)
+```
+
+# Shapiro-Wilk Test for Normality
+```{r}
+# Assuming 'data_vector' is your vector of data
+shapiro_test_result <- shapiro.test(sp_student_data_cleaned$napping_factor_FA)
+
+# Print the results
+print(shapiro_test_result)
+```
+
+# Differences in Correlational Analysis with High and Low SP
+```{r}
+# DIFFERENCES IN CORRELATION ANALYSIS BETWEEN HIGH AND LOW SP
+# Spearman's R
+spearman_corr <- cor.test(sp_student_data_cleaned_HighSP$napping_factor, sp_student_data_cleaned_HighSP$sp_freq_coded, method = "spearman")
+print(spearman_corr)
+
+# Create a scatter plot with a regression line
+ggplot(sp_student_data_cleaned_HighSP, aes(x = sp_freq_coded, y = napping_factor)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE) +
+    labs(title = "Correlation between Variable1 and Variable2",
+         x = "Indepedent",
+         y = "Dependent")
+
+spearman_corr <- cor.test(sp_student_data_cleaned_LowSP$napping_factor, sp_student_data_cleaned_LowSP$sp_freq_coded, method = "spearman")
+print(spearman_corr)
+
+# Create a scatter plot with a regression line
+ggplot(sp_student_data_cleaned_LowSP, aes(x = sp_freq_coded, y = napping_factor)) +
+    geom_point() +
+    geom_smooth(method = "lm", se = TRUE) +
+    labs(title = "Correlation between Variable1 and Variable2",
+         x = "Indepedent",
+         y = "Dependent")
+
+# OVERLAPPING GRAPHS WITH SP LEVEL AS A FACTOR
+sp_student_data_cleaned$sp_level_factor <- factor(sp_student_data_cleaned$sp_level, 
+                                           levels = c(0, 1), 
+                                           labels = c("-SP", "+SP"))
+p <- ggplot(sp_student_data_cleaned, aes(x = sp_freq_coded, y = napping_factor, color = sp_level_factor)) +
+    geom_point() + 
+    geom_smooth(method = "lm", aes(group = sp_level_factor), se = TRUE) +  
+    scale_color_manual(values = c("-SP" = "blue", "+SP" = "red")) +
+    labs(title = "Correlation of Sleep Paralysis Frequency and Outcome ",
+         x = "Sleep Paralysis Frequency",
+         y = "Outcome Variable") +
+    theme_minimal() +
+    theme(legend.position = "right")  # Adjust legend position
+
+print(p)
+
+line_plot <- ggplot(sp_student_data_cleaned) +
+  stat_summary(
+    mapping = aes(x = sp_level_factor, y = napping_factor), 
+    fun.max = max,
+    fun.min = min,
+    fun = median
+  )
+
+print(line_plot)
+```
+
+# Fun Correlation Matrix for Variables
+```{r}
+# FUN CORRELATION MATRIX FOR THE VARIABLES
+cor_matrix_fun <- cor(sp_student_data_cleaned[, c("napping_factor_FA", "number_of_occupants", "noisy_area_coded", "nicotine_factor", "alc_factor_FA", "caffetine_factor_FA", "family_factor_FA", "PSQI")], use = "complete.obs", method = "spearman")
+print(cor_matrix_fun)
+corrplot(cor_matrix_fun, method = "color", type = "upper", order = "hclust",
+         tl.col = "black", tl.srt = 45, # Text label color and rotation
+         diag = FALSE) # Exclude the diagonal
+```
+
+# Real Correlation Matrix for Variables
+```{r}
+# REAL CORRELATION MATRIx OF THE VARIABLES
+# Compute the Spearman correlation matrix with p-values
+# Compute the Spearman correlation matrix with p-values
+rcorr_results <- rcorr(as.matrix(sp_student_data_cleaned[, c("napping_factor_FA", "number_of_occupants", "noisy_area_coded", "nicotine_factor", "alc_factor_FA", "caffetine_factor_FA", "family_factor_FA", "PSQI")]), type="spearman")
+
+# Extract the matrix of correlations
+cor_matrix <- rcorr_results$r
+
+# Extract the matrix of p-values
+p_matrix <- rcorr_results$P
+
+# Format the correlation matrix with significance levels
+formatted_cor_matrix <- mapply(function(x, p_value) {
+  signif_level <- ifelse(p_value < 0.001, "***", 
+                         ifelse(p_value < 0.01, "**", 
+                                ifelse(p_value < 0.05, "*", "")))
+  paste0(sprintf("%.2f", x), signif_level)
+}, cor_matrix, p_matrix, SIMPLIFY = FALSE)
+
+# Convert the list to a matrix and set the upper triangle to NA
+formatted_cor_matrix <- matrix(formatted_cor_matrix, nrow = nrow(cor_matrix), byrow = TRUE,
+                               dimnames = dimnames(cor_matrix))
+formatted_cor_matrix[upper.tri(formatted_cor_matrix)] <- ""
+
+# Display the formatted matrix using knitr::kable
+knitr::kable(formatted_cor_matrix, format = "markdown", caption = "Spearman's rank correlation matrix with significance levels")
+
+```
+

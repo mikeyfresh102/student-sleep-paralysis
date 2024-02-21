@@ -1,0 +1,162 @@
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidyr)
+```
+
+```{r}
+# Create the plot for High SP and Low SP PSQI Difference
+p <- ggplot(sp_student_data_cleaned, aes(x = sp_level, y = PSQI, color = country, group = country)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = score - se, ymax = score + se), width = .1) +  # Assuming 'se' is the standard error
+  scale_color_manual(values = c("USA" = "blue", "India" = "green")) +
+  labs(title = "Mean IAT Scores by Reported Suicide Level",
+       x = "Lifetime Reported Suicide Level",
+       y = "Mean IAT Scores") +
+  theme_minimal() +
+  theme(legend.title = element_blank())  # Removes the legend title
+
+# Print the plot
+print(p)
+
+```
+
+
+```{r}
+#Descriptive Stats
+sp_student_freq_table <- table(sp_student_data_cleaned$USA_student_coded) #just input the column
+sp_student_percent_table <- round((prop.table(sp_student_freq_table)) * 100, digits = 2) 
+sp_descriptive_table <- cbind(sp_student_freq_table, Percentage = sp_student_percent_table)
+print(sp_descriptive_table)
+hist(sp_student_data_cleaned$USA_student_coded)
+sp_student_data_cleaned$sp_freq_coded <- as.numeric(sp_student_data_cleaned$sp_freq_coded)
+ggplot(sp_student_data_cleaned, aes(x = sp_freq_coded, fill = ifelse(sp_freq_coded >= 3, "High", "Low"))) + 
+  geom_bar(stat = "count") +
+  scale_fill_manual(values = c("Low" = "lightblue", "High" = "salmon")) +
+  labs(title = "Sleep Paralysis Frequency", 
+       x = "SP Frequency", 
+       y = "Count in Sample"
+       ) + 
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5),
+  legend.position = "none")
+
+
+```
+
+```{r}
+#Continuous variables stats
+sp_time_bed <- (sp_student_data_cleaned$Q11.6)
+sp_time_bed <- as.numeric(sp_time_bed)
+mean_value <- mean(sp_time_bed)
+median_value <- median(sp_time_bed)
+sd_variable <- sd(sp_time_bed)
+con_list <- list(
+  Mean = mean_value,
+  Median = median_value,
+  SD = sd_variable
+)
+print(con_list)
+
+```
+
+```{r}
+# REMOVING THE NOS FROM THE DF
+df_that_removes_the_nos <- copy_sp_student_data_cleaned %>%
+  filter(caffetine_use_coded == 1) 
+vector_for_desciptive_analysis <- df_that_removes_the_nos$caffetine_per_week
+mean_value <- mean(vector_for_desciptive_analysis)
+median_value <- median(vector_for_desciptive_analysis)
+range_values <- range(vector_for_desciptive_analysis)
+numerical_range <- diff(range_values)
+sd_variable <- sd(vector_for_desciptive_analysis)
+con_list_nos <- list(
+  Mean = mean_value,
+  Median = median_value,
+  Range = range_values,
+  NumericalRange = numerical_range,
+  SD = sd_variable
+)
+print(con_list_nos)
+
+```
+
+```{r}
+# COMPARISION OF GENDERS
+comparision_of_genders_df <- copy_sp_student_data %>%
+  select(Q2.4, sp_freq_coded) %>%
+  mutate(gender_factored = as.factor(Q2.4)) %>%
+  select(-Q2.4)
+gender_comparision_stats <- comparision_of_genders_df %>%
+  group_by(gender_factored) %>%
+  summarise(
+    count = n(),
+    mean = mean(sp_freq_coded, na.rm = TRUE), 
+    median = median(sp_freq_coded, na.rm = TRUE), 
+    sd = sd(sp_freq_coded, na.rm = TRUE)
+  )
+anova_results_gender <- aov(sp_freq_coded ~ gender_factored, data = comparision_of_genders_df)
+kruskal_gender <- kruskal.test(sp_freq_coded ~ gender_factored, data = comparision_of_genders_df)
+print(gender_comparision_stats)
+summary(anova_results_gender)
+summary(kruskal_gender)
+```
+
+```{r}
+# DO I HAVE ANY OUTLIERS?
+# per day 
+boxplot(sp_student_data$Q11.4)
+z_scores <- scale(sp_student_data$Q11.4)
+outliers_z <- which(abs(z_scores) > 4)
+
+model_outliers <- lm(sp_freq_coded ~ Q11.4, data = sp_student_data)
+cooksd <- cooks.distance(model_outliers)
+plot(cooksd, type="h")
+print(outliers_z)
+# per week
+boxplot(sp_student_data$Q11.6)
+z_scores <- scale(sp_student_data$Q11.6)
+outliers_z <- which(abs(z_scores) > 4)
+
+model_outliers <- lm(sp_freq_coded ~ Q11.6, data = sp_student_data)
+cooksd <- cooks.distance(model_outliers)
+plot(cooksd, type="h")
+print(outliers_z)
+# per whatever 
+boxplot(sp_student_data$caffetine_use_coded)
+z_scores <- scale(sp_student_data$caffetine_use_coded)
+outliers_z <- which(abs(z_scores) > 4)
+
+model_outliers <- lm(sp_freq_coded ~ caffetine_use_coded, data = sp_student_data)
+cooksd <- cooks.distance(model_outliers)
+plot(cooksd, type="h")
+print(outliers_z)
+
+```
+
+```{r}
+# REMOVE THE OUTLIERS
+sp_student_data_cleaned <- sp_student_data[-c(27, 33, 34, 44, 98, 101, 120, 133, 148), ]
+```
+
+```{r}
+library(ggplot2)
+
+# Assuming 'your_data' is your dataframe
+# Melt the dataframe to a long format for easier plotting with ggplot2
+long_data <- pivot_longer(data = sp_student_data_cleaned, 
+                          cols = !c(RecordedDate, ResponseId, Q1.2, Q2.1, Q2.2, Q2.3, Q2.4, Q2.5, Q2.6, Q2.7, Q2.8, Q3.1, Q3.2, Q3.3, Q3.4, Q4.1, Q4.2, Q4.3, Q4.4, Q5.1, Q5.2, Q6.1, Q6.4, Q6.5, Q6.6, Q7.1, Q7.6, Q8.1, Q8.4, Q8.5, Q9.1, Q9.2, Q9.2_3_TEXT, Q10.1, Q10.2, Q10.3, Q11.3, Q11.5, Q11.8, Q11.9, Q11.10, Q11.12, Q11.13, Q11.14, Q11.16, Q11.17, Q11.18, Q11.19, Q11.20, Q11.21, Q11.22, Q11.23),
+                          names_to = "variable", 
+                          values_to = "value")
+# Plotting
+ggplot(long_data, aes(x = value)) + 
+  geom_histogram(bins = 30, fill = "blue", color = "black") + 
+  facet_wrap(~ variable, scales = "free_x") +
+  theme_minimal() +
+  labs(x = "Value", y = "Frequency", title = "Histograms of Independent Variables")
+
+```
+
+
+

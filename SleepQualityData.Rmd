@@ -1,0 +1,164 @@
+
+```{r}
+library(dplyr)
+library(lubridate)
+```
+
+```{r}
+sp_student_data <- sp_student_data %>%
+  mutate(PSQI = SC1 + SC2 + SC3 + SC4 + SC5 + SC6 + SC7)
+```
+
+```{r}
+# CREATION OF SC5
+sp_student_data <- sp_student_data %>%
+  mutate(SC5b = case_when(
+    Q11.9 == "Not during the past month" ~ 0,
+    Q11.9 == "Less than once a week" ~ 1, 
+    Q11.9 == "Once or twice a week" ~ 2,
+    Q11.9 == "Three or more times a week" ~ 3
+  )) %>%
+   mutate(SC5c = case_when(
+    Q11.10 == "Not during the past month" ~ 0,
+    Q11.10 == "Less than once a week" ~ 1, 
+    Q11.10 == "Once or twice a week" ~ 2,
+    Q11.10 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5d = case_when(
+    Q11.12 == "Not during the past month" ~ 0,
+    Q11.12 == "Less than once a week" ~ 1, 
+    Q11.12 == "Once or twice a week" ~ 2,
+    Q11.12 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5e = case_when(
+    Q11.13 == "Not during the past month" ~ 0,
+    Q11.13 == "Less than once a week" ~ 1, 
+    Q11.13 == "Once or twice a week" ~ 2,
+    Q11.13 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5f = case_when(
+    Q11.14 == "Not during the past month" ~ 0,
+    Q11.14 == "Less than once a week" ~ 1, 
+    Q11.14 == "Once or twice a week" ~ 2,
+    Q11.14 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5g = case_when(
+    Q11.16 == "Not during the past month" ~ 0,
+    Q11.16 == "Less than once a week" ~ 1, 
+    Q11.16 == "Once or twice a week" ~ 2,
+    Q11.16 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5h = case_when(
+    Q11.17 == "Not during the past month" ~ 0,
+    Q11.17 == "Less than once a week" ~ 1, 
+    Q11.17 == "Once or twice a week" ~ 2,
+    Q11.17 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5i = case_when(
+    Q11.18 == "Not during the past month" ~ 0,
+    Q11.18 == "Less than once a week" ~ 1, 
+    Q11.18 == "Once or twice a week" ~ 2,
+    Q11.18 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC5j = ifelse(nchar(Q11.19) > 0, 2, 0)) %>%
+  mutate(SC5sum = SC5b + SC5c + SC5d + SC5e + SC5f + SC5g + SC5h + SC5i + SC5j) %>%
+  mutate(SC5 = case_when(
+    SC5sum == 0 ~ 0, 
+    SC5sum >= 1 & SC5sum <= 9 ~ 1, 
+    SC5sum >= 10 & SC5sum <= 18 ~ 2,
+    SC5sum >= 19 & SC5sum <= 27 ~ 3
+  )) %>%
+  select(-SC5b, -SC5c, -SC5d, -SC5e, -SC5f, -SC5g, -SC5h, -SC5i, -SC5j)
+  
+```
+
+```{r}
+# CREATION OF SC7
+sp_student_data <- sp_student_data %>%
+  mutate(SC7a = case_when(
+    Q11.21 == "Not during the past month" ~ 0, 
+    Q11.21 == "Less than once a week" ~ 1,
+    Q11.21 == "Once or twice a week" ~ 2, 
+    Q11.21 == "Three or more times a week" ~ 3
+  )) %>%
+  mutate(SC7b = case_when(
+    Q11.22 == "No problem at all" ~ 0, 
+    Q11.22 == "Only a very slight problem" ~ 1, 
+    Q11.22 == "Somewhat of a problem" ~ 2, 
+    Q11.22 == "A very big problem" ~ 3
+  )) %>%
+  mutate(SC7sum = SC7a + SC7b) %>%
+  mutate(SC7 = case_when(
+    SC7sum == 0 ~ 0,
+    SC7sum >= 1 & SC7sum <= 2 ~ 1, 
+    SC7sum >= 3 & SC7sum <= 4 ~ 2, 
+    SC7sum >= 5 & SC7sum <= 6 ~ 3
+  )) %>%
+  select(-SC7a, -SC7b, -SC7sum)
+
+```
+
+```{r}
+# CREATION OF SC6
+sp_student_data <- sp_student_data %>%
+  mutate(SC6 = case_when(
+    Q11.20 == "Not during the past month" ~ 0,
+    Q11.20 == "Less than once a week" ~ 1, 
+    Q11.20 == "Once or twice a week" ~ 2,
+    Q11.20 == "Three or more times a week" ~ 3,
+    TRUE ~ NA_real_
+  ))
+```
+
+```{r}
+# Delete of Sleep Duration column
+sp_student_data <- sp_student_data %>%
+  select(-sleep_duration)
+```
+
+```{r}
+# Subtracting the wake up time from the bedtime 
+
+dummy_date <- "2000-01-01"
+
+sp_student_data <- sp_student_data %>%
+  mutate(
+   bedtime_with_date = as.POSIXct(paste(dummy_date, sp_student_data$Q11.3), format="%Y-%m-%d %H:%M"),
+   wakeup_with_date = as.POSIXct(paste(dummy_date, sp_student_data$Q11.5), format="%Y-%m-%d %H:%M"),
+   wakeup_with_date = if_else(wakeup_with_date < bedtime_with_date,
+                               wakeup_with_date + 24*60*60,
+                               wakeup_with_date),
+   SC4b = difftime(wakeup_with_date, bedtime_with_date, units = "hours")
+  ) %>%
+  
+  select(-bedtime_with_date, -wakeup_with_date)
+
+```
+
+```{r}
+#CREATING SC4per
+sp_student_data <- sp_student_data %>%
+  mutate(SC4per = Q11.6 / as.numeric(SC4b, units = "hours")) %>%
+  mutate(SC4per = SC4per * 100)
+```
+
+
+```{r}
+# CREATION OF SC4
+sp_student_data$SC4per <- as.numeric(sp_student_data$SC4per)
+sp_student_data <- sp_student_data %>%
+  mutate(SC4 = case_when(
+    SC4per > 84 ~ 0,
+    SC4per >= 75 & SC4per <= 84 ~ 1,
+    SC4per >= 65 & SC4per <= 74 ~ 2,
+    SC4per < 65 ~ 3,  
+    TRUE ~ NA_real_ 
+  ))
+```
+```
+
+
+
+
+
+

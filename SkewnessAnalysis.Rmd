@@ -1,0 +1,41 @@
+
+```{r}
+library(e1071)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r}
+skewness_data <- skewness(sp_student_data_cleaned$nicotine_factor_FA)
+kurtosis_data <- kurtosis(sp_student_data_cleaned$nicotine_factor_FA)
+print(skewness_data)
+print(kurtosis_data)
+hist(sp_student_data_cleaned$nicotine_factor_FA)
+```
+
+```{r}
+# Read your correlation matrix from a CSV file
+cor_matrix <- read.csv("Correlation_Matrix_1.21.24.csv")
+
+# Assuming the first column is row names, set it as the row names of the matrix
+rownames(cor_matrix) <- cor_matrix[,1]
+cor_matrix <- cor_matrix[,-1]
+
+# Melt the correlation matrix for ggplot2
+melted_cor_matrix <- melt(cor_matrix)
+
+# Rename the Var1 and Var2 columns
+colnames(melted_cor_matrix) <- c("RowVariable", "ColumnVariable", "Value")
+
+# Generate the heatmap
+ggplot(data = melted_cor_matrix, aes(x = RowVariable, y = ColumnVariable, fill = Value)) + 
+  geom_tile() + 
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Spearman\nCorrelation") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        axis.text.y = element_text(angle = 45, hjust = 1)) +
+  labs(x = '', y = '', title = 'Heatmap of Correlation Matrix')
+```
+
